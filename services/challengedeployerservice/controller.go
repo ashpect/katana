@@ -59,8 +59,8 @@ func Deploy(c *fiber.Ctx) error {
 			log.Println("Challenge path is : " + challengePath)
 			log.Println(challengePath + "/challenge/Dockerfile")
 
-			ccName:=folderName+"-cc"
-			ccNamespace:="katana"
+			ccName := folderName + "-cc"
+			ccNamespace := "katana"
 
 			//Check if the folder has a Dockerfile
 			if _, err := os.Stat(challengePath + "/challenge/Dockerfile"); err != nil {
@@ -73,7 +73,7 @@ func Deploy(c *fiber.Ctx) error {
 				utils.BuildDockerImage(folderName, challengePath+"/challenge")
 
 				//Update challenge-checker path to get dockerfile
-				infrasetservice.Apply_cc_yml(c,ccName,ccNamespace)
+				infrasetservice.Apply_cc_yml(c, ccName, ccNamespace)
 				utils.BuildDockerImage(ccName, challengePath+"/challenge-checker")
 				deployment.DeployChallengeCheckerToCluster(ccName, ccNamespace, replicas)
 				url, err := createServiceForChallengeChecker(ccName, ccNamespace, 8080)
@@ -141,8 +141,8 @@ func Cc(c *fiber.Ctx) error {
 			log.Println(challengePath + "/challenge/Dockerfile")
 
 			// '-cc' at last of ccName is convention which is also followed in kissaki for handling status
-			ccName:=folderName+"-cc"
-			ccNamespace:="katana"
+			ccName := folderName + "-cc"
+			ccNamespace := "katana"
 
 			//Check if the folder has a Dockerfile
 			if _, err := os.Stat(challengePath + "/challenge-checker/Dockerfile"); err != nil {
@@ -150,7 +150,7 @@ func Cc(c *fiber.Ctx) error {
 			} else {
 
 				//Update challenge-checker path to get dockerfile
-				infrasetservice.Apply_cc_yml(c,ccName,ccNamespace)
+				infrasetservice.Apply_cc_yml(c, ccName, ccNamespace)
 				utils.BuildDockerImageCc(ccName, challengePath+"/challenge-checker")
 				deployment.DeployChallengeCheckerToCluster(ccName, ccNamespace, replicas)
 				url, err := createServiceForChallengeChecker(ccName, ccNamespace, 8080)
@@ -206,7 +206,7 @@ func Team(c *fiber.Ctx) error {
 			//Check if the folder has a Dockerfile
 			if _, err := os.Stat(challengePath + "/challenge/Dockerfile"); err != nil {
 				log.Println("Dockerfile not found in the " + folderName + " challenge folder. Please follow proper format.")
-			}else {
+			} else {
 				//pass path of folder which contains dockerfile
 				//Update challenge path to get dockerfile
 				utils.BuildDockerImage(folderName, challengePath+"/challenge")
@@ -298,7 +298,7 @@ func DeployChallenge(c *fiber.Ctx) error {
 			}
 			copyChallengeIntoTsuka(challengePath, folderName, challengeType)
 			copyFlagDataIntoKashira(challengePath, folderName)
-			copyChallengeCheckerIntoKissaki(challengePath, folderName)	// Retained this function for potential future use. Will evaluate and remove if found unnecessary during testing.
+			copyChallengeCheckerIntoKissaki(challengePath, folderName) // Retained this function for potential future use. Will evaluate and remove if found unnecessary during testing.
 
 			return c.JSON(res)
 		}
