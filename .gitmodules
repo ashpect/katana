@@ -1,2 +1,5 @@
 [submodule "git@github.com:sdslabs/katana-services.git"]
 	branch = main
+[submodule "katana-services"]
+	path = katana-services
+	url = git@github.com:sdslabs/katana-services.git
