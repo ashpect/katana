@@ -29,6 +29,12 @@ func GenerateCerts(domain string, basePath string) error {
 	if err := RunCommand(cmd); err != nil {
 		return err
 	}
+	
+	// using -traditional flag to get PKCS#1 [different header], otherwise 500 Internal Error
+	cmd = "openssl rsa -in "+basePath+"/ca.key -out "+basePath+"/ca.key -traditional"
+	if err := RunCommand(cmd); err != nil {
+		return err
+	}
 
 	// using -traditional flag to get PKCS#1 [different header], otherwise 500 Internal Error
 	cmd = "openssl rsa -in "+basePath+"/ca.key -out "+basePath+"/ca.key -traditional"
