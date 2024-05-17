@@ -221,8 +221,7 @@ func DeployChallengeCheckerToCluster(challengeCheckerName, namespace string, rep
 	kubeclient, _ := utils.GetKubeClient()
 
 	deploymentsClient := kubeclient.AppsV1().Deployments(namespace)
-	// imageName := "harbor.katana.local/katana/" + challengeCheckerName
-	imageName := "iiteens/" + challengeCheckerName
+	imageName := "harbor.katana.local/katana/" + challengeCheckerName
 
 	manifest := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{

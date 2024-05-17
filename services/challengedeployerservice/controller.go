@@ -99,7 +99,6 @@ func Deploy(c *fiber.Ctx) error {
 			}
 			copyChallengeIntoTsuka(challengePath, folderName, challengeType)
 			copyFlagDataIntoKashira(challengePath, folderName)
-			// copyChallengeCheckerIntoKissaki(challengePath, folderName)
 		}
 	}
 	return c.JSON(res)
@@ -228,7 +227,6 @@ func Team(c *fiber.Ctx) error {
 			}
 			copyChallengeIntoTsuka(challengePath, folderName, challengeType)
 			copyFlagDataIntoKashira(challengePath, folderName)
-			// copyChallengeCheckerIntoKissaki(challengePath, folderName)
 		}
 	}
 	return c.JSON(res)
@@ -300,7 +298,7 @@ func DeployChallenge(c *fiber.Ctx) error {
 			}
 			copyChallengeIntoTsuka(challengePath, folderName, challengeType)
 			copyFlagDataIntoKashira(challengePath, folderName)
-			copyChallengeCheckerIntoKissaki(challengePath, folderName)
+			copyChallengeCheckerIntoKissaki(challengePath, folderName)	// Retained this function for potential future use. Will evaluate and remove if found unnecessary during testing.
 
 			return c.JSON(res)
 		}
@@ -462,24 +460,3 @@ func DeleteChallenge(c *fiber.Ctx) error {
 
 	return c.SendString("Deleted challenge" + challengeName + "in all namespaces.")
 }
-
-// func Deploy(c *fiber.Ctx) error {
-
-// 	folderpath:="/home/iiteens/katana/challenges/the-varsity/challenge-checker"
-// 	replicas:=int32(1)
-// 	ccName:="the-varsity-cc"
-// 	ccNamespace:="katana"
-// 	res:=make([][]string,0)
-
-// 	infrasetservice.Apply_cc_yml(c,ccName,ccNamespace)
-// 	utils.BuildDockerImage(ccName,folderpath)
-// 	deployment.DeployChallengeCheckerToCluster(ccName,ccNamespace,replicas)
-// 	url,err:=createServiceForChallengeChecker(ccName,ccNamespace,8080)
-// 	if err!=nil{
-// 		res=append(res, []string{ccName,err.Error()})
-// 	}else{
-// 		res=append(res, []string{ccName,url})
-// 	}
-
-// 	return c.JSON(res)
-// }

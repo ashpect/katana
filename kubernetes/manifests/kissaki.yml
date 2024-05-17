@@ -28,7 +28,7 @@ spec:
       serviceAccountName: cluster-admin
       containers:
         - name: kissaki
-          image: iiteens/kissaki
+          image: harbor.katana.local/katana/kissaki
           imagePullPolicy: Always   # added for ease may be remove later
           ports:
             - containerPort: 80
@@ -61,4 +61,4 @@ spec:
   ports:
     - protocol: TCP
       port: 80
-      targetPort: 5000
+      targetPort: 5000  #Kissaki port in katana-services is in 5000, add this to docs to main consistency

@@ -21,8 +21,7 @@ spec:
       serviceAccountName: cluster-admin
       containers:
       - name: {{.AppName}}
-        # image: "harbor.katana.local/katana/"{{.Image}}
-        image: "iiteens/"{{.Image}}
+        image: "harbor.katana.local/katana/"{{.Image}}
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
