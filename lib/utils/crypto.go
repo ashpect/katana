@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
+	"log"
 
 	"github.com/xdg-go/pbkdf2"
 	"golang.org/x/crypto/bcrypt"
@@ -25,65 +26,75 @@ func Base64Encode(str string) string {
 
 func GenerateCerts(domain string, basePath string) error {
 	// Generate ca.key in harbor directory
+	log.Println("cert 1")
 	cmd := "openssl genrsa -out " + basePath + "/ca.key 4096"
 	if err := RunCommand(cmd); err != nil {
 		return err
 	}
-	
+	log.Println("cert 2")
 	// using -traditional flag to get PKCS#1 [different header], otherwise 500 Internal Error
 	cmd = "openssl rsa -in "+basePath+"/ca.key -out "+basePath+"/ca.key -traditional"
 	if err := RunCommand(cmd); err != nil {
 		return err
 	}
 
+	log.Println("cert 3")
 	// using -traditional flag to get PKCS#1 [different header], otherwise 500 Internal Error
 	cmd = "openssl rsa -in "+basePath+"/ca.key -out "+basePath+"/ca.key -traditional"
 	if err := RunCommand(cmd); err != nil {
 		return err
 	}
 
+	log.Println("cert 4")
 	// Generate ca.crt
 	cmd = "openssl req -x509 -new -nodes -sha512 -days 3650 -subj '/C=IN/ST=Delhi/L=Delhi/O=Katana/CN=" + domain + "' -key " + basePath + "/ca.key -out " + basePath + "/ca.crt"
 	if err := RunCommand(cmd); err != nil {
 		return err
 	}
 
+	log.Println("cert 5")
 	// using -traditional flag to get PKCS#1 [different header], otherwise 500 Internal Error
-	cmd = "openssl rsa -in " + basePath + "/" + domain + ".key -out " + basePath + "/" + domain + ".key -traditional"
-	if err := RunCommand(cmd); err != nil {
-		return err
-	}
+	// cmd = "openssl rsa -in " + basePath + "/" + domain + ".key -out " + basePath + "/" + domain + ".key -traditional"
+	// if err := RunCommand(cmd); err != nil {
+	// 	return err
+	// }
 
+	log.Println("cert 6")
 	// Generate private key
 	cmd = "openssl genrsa -out " + basePath + "/" + domain + ".key 4096"
 	if err := RunCommand(cmd); err != nil {
 		return err
 	}
 
+	log.Println("cert 7")
 	// using -traditional flag to get PKCS#1 [different header], otherwise 500 Internal Error
 	cmd="openssl rsa -in "+basePath+"/"+domain+".key -out "+basePath+"/"+domain+".key -traditional"
 	if err := RunCommand(cmd); err != nil {
 		return err
 	}
 
+	log.Println("cert 8")
 	// Generate certificate signing request
 	cmd = "openssl req -sha512 -new -subj '/C=IN/ST=Delhi/L=Delhi/O=Katana/CN=" + domain + "' -key " + basePath + "/" + domain + ".key -out " + basePath + "/" + domain + ".csr"
 	if err := RunCommand(cmd); err != nil {
 		return err
 	}
 
+	log.Println("cert 9")
 	// Generate v3.ext file
 	cmd = "echo 'authorityKeyIdentifier=keyid,issuer\nbasicConstraints=CA:FALSE\nkeyUsage = digitalSignature, nonRepudiation, keyEncipherment, dataEncipherment\nextendedKeyUsage = serverAuth\nsubjectAltName = @alt_names\n[alt_names]\nDNS.1=" + domain + "' > " + basePath + "/v3.ext"
 	if err := RunCommand(cmd); err != nil {
 		return err
 	}
 
+	log.Println("cert 10")
 	// Generate certificate
 	cmd = "openssl x509 -req -sha512 -days 3650 -extfile " + basePath + "/v3.ext -CA " + basePath + "/ca.crt -CAkey " + basePath + "/ca.key -CAcreateserial -in " + basePath + "/" + domain + ".csr -out " + basePath + "/" + domain + ".crt"
 	if err := RunCommand(cmd); err != nil {
 		return err
 	}
 
+	log.Println("cert 11")
 	return nil
 }
 

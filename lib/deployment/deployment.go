@@ -129,9 +129,11 @@ func DeployCluster(kubeconfig *rest.Config, kubeclientset *kubernetes.Clientset)
 		if err = tmpl.Execute(manifest, deploymentConfig); err != nil {
 			return err
 		}
+		//TODO add a receiver handler to avoid throttling or apply all manifest concurrently
 		if err = ApplyManifest(kubeconfig, kubeclientset, manifest.Bytes(), g.KatanaConfig.KubeNameSpace); err != nil {
 			return err
 		}
+		
 	}
 
 	return nil

@@ -13,6 +13,5 @@ vendor/*
 teams/*
 teamcreds.txt
 lib/harbor/certs/*
-sam/
+peer_configs/*
 work.txt
-sam.yml
