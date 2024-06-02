@@ -51,8 +51,13 @@ func Server() error {
 	admin.Post("/login", infraSetService.Login)
 	admin.Get("/createTeams", infraSetService.CreateTeams)
 	admin.Post("/challengeUpdate", challengeDeployerService.ChallengeUpdate)
+	admin.Get("/deploy", challengeDeployerService.Deploy)
 	admin.Post("/deployChallenge", challengeDeployerService.DeployChallenge)
 	admin.Get("/gitServer", infraSetService.GitServer)
+	
+	admin.Get("/cc",challengeDeployerService.Cc)
+	admin.Get("/team",challengeDeployerService.Team)
+	
 	admin.Get("/deleteChallenge/:chall_name", challengeDeployerService.DeleteChallenge)
 	log.Printf("Listening on %s:%d\n", cfg.APIConfig.Host, cfg.APIConfig.Port)
 	admin.Get("/startTicker", c.StartTicker)

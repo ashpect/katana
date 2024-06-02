@@ -20,6 +20,7 @@ import (
 	"github.com/sdslabs/katana/lib/mongo"
 	"github.com/sdslabs/katana/lib/mysql"
 	utils "github.com/sdslabs/katana/lib/utils"
+	"github.com/sdslabs/katana/lib/wireguard"
 	"github.com/sdslabs/katana/types"
 	coreV1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,8 +38,9 @@ func InfraSet(c *fiber.Ctx) error {
 		log.Fatal(err)
 	}
 
+	log.Println("Creating harbor certs ...")
 	generateCertsforHarbor()
-
+	log.Println("Created harbor certs ...")
 	if err = deployment.DeployCluster(config, kubeclient); err != nil {
 		log.Fatal(err)
 	}
@@ -48,7 +50,17 @@ func InfraSet(c *fiber.Ctx) error {
 		log.Fatal(err)
 	}
 
+	err = wireguard.ApplyFirewall()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	buildKatanaServices()
+
+	err = wireguard.SetupWireguard()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	return c.SendString("Infrastructure setup completed")
 }
@@ -194,6 +206,54 @@ func CreateTeams(c *fiber.Ctx) error {
 	}
 	mongo.CreateTeams(teams)
 	return c.SendString("Successfully created teams")
+}
+
+func Apply_cc_yml(c *fiber.Ctx ,ccName, namespaceName string) error {
+	config, err := utils.GetKubeConfig()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	data:=struct{
+		Namespace string
+		AppName string
+		Image string
+	}{
+		Namespace: namespaceName,
+		AppName:ccName,
+		Image:ccName,
+	}
+
+	client, err := utils.GetKubeClient()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// namespace := &coreV1.Namespace{
+    //     ObjectMeta: metav1.ObjectMeta{
+    //         Name: namespaceName,
+    //     },
+    // }
+
+    // _, err = client.CoreV1().Namespaces().Create(c.Context(),namespace,metav1.CreateOptions{})
+    // if err != nil {
+    //     panic(err)
+    // }
+
+	manifest:=&bytes.Buffer{}
+	tmpl,err:=template.ParseFiles(filepath.Join(configs.ClusterConfig.TemplatedManifestDir,"runtime","cc.yml"))
+	if err!=nil{
+		return err
+	}
+	// deploymentConfig:=utils.DeploymentConfig()
+	if err = tmpl.Execute(manifest,data);err!=nil{
+		return err
+	}
+	if err=deployment.ApplyManifest(config,client,manifest.Bytes(),namespaceName);err!=nil{
+		return err
+	}
+
+	return nil
 }
 
 func GitServer(c *fiber.Ctx) error {
