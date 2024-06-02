@@ -158,7 +158,8 @@ def check_route():
             result["status"] = status
         except Exception as e:
             logging.error(f"Error checking challenge: {str(e)}")
-            result["error"] = str(e)
+            # result["error"] = str(e)
+            result["status"] = 0
         results["data"].append(result)
     return jsonify(results)
 

@@ -6,7 +6,7 @@ def check_challenge(url):
     result = {}
 
     register_response = requests.post(
-        url + "register", json={"username": "something", "voucher": ""}
+        url + "register", json={"username": "something", "voucher": ""}, timeout=2
     )
 
     # Check if the request was successful (status code 200)
@@ -31,7 +31,7 @@ def check_challenge(url):
     article_data = {"issue": "5"}
 
     article_response = requests.post(
-        url + "article", json=article_data, headers=article_headers
+        url + "article", json=article_data, headers=article_headers, timeout=2
     )
 
     if article_response.status_code == 200:

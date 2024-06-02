@@ -15,11 +15,49 @@ import (
 	archiver "github.com/mholt/archiver/v3"
 	g "github.com/sdslabs/katana/configs"
 	"github.com/sdslabs/katana/lib/deployment"
+	"github.com/sdslabs/katana/lib/mongo"
 	"github.com/sdslabs/katana/lib/utils"
 	"github.com/sdslabs/katana/services/infrasetservice"
 	"github.com/sdslabs/katana/types"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/BurntSushi/toml"
 )
+
+type ChallengeToml struct {
+	Challenge Challenge `toml:"challenge"`
+}
+
+type Challenge struct {
+	Author   Author   `toml:"author"`
+	Metadata Metadata `toml:"metadata"`
+	Env      Env      `toml:"env"`
+}
+
+type Author struct {
+	Name  string `toml:"name"`
+	Email string `toml:"email"`
+}
+
+type Metadata struct {
+	Name        string `toml:"name"`
+	Flag        string `toml:"flag"`
+	Description string `toml:"description"`
+	Type        string `toml:"type"`
+	Points      int    `toml:"points"`
+}
+
+type Env struct {
+	PortMappings []string `toml:"port_mappings"`
+}
+
+func LoadConfiguration(configFile string) ChallengeToml {
+	var config ChallengeToml
+	if _, err := toml.DecodeFile(configFile, &config); err != nil {
+		log.Fatal(err)
+		return ChallengeToml{}
+	}
+	return config
+}
 
 func Deploy(c *fiber.Ctx) error {
 	patch := false
@@ -278,6 +316,9 @@ func DeployChallenge(c *fiber.Ctx) error {
 				return c.SendString("Error in unarchiving")
 			}
 
+			data := LoadConfiguration("./challenges/"+folderName+"/config.toml")
+			challengeType = data.Challenge.Metadata.Type
+
 			//Update challenge path to get dockerfile
 			utils.BuildDockerImage(folderName, challengePath+"/"+folderName)
 
@@ -288,8 +329,25 @@ func DeployChallenge(c *fiber.Ctx) error {
 			for i := 0; i < int(numberOfTeams); i++ {
 				log.Println("-----------Deploying challenge for team: " + strconv.Itoa(i) + " --------")
 				teamName := "katana-team-" + strconv.Itoa(i)
+				challenge := types.Challenge{
+					ChallengeName: folderName,
+					Uptime:        0,
+					Attacks:       0,
+					Defences:      0,
+					Points:        data.Challenge.Metadata.Points,
+					Flag:          data.Challenge.Metadata.Flag,
+				}
+				err := mongo.AddChallenge(challenge, teamName)
+				if err != nil {
+					fmt.Println("Error in adding challenge to mongo")
+					log.Println(err)
+				}
 				deployment.DeployChallengeToCluster(folderName, teamName, patch, replicas)
-				url, err := createServiceForChallenge(folderName, teamName, 3000, i)
+				port, err := strconv.ParseInt(strings.Split(data.Challenge.Env.PortMappings[0], ":")[1], 10, 32)
+				if err != nil {
+					log.Println("Error occured")
+				}
+				url, err := createServiceForChallenge(folderName, teamName, int32(port), i)
 				if err != nil {
 					res = append(res, []string{teamName, err.Error()})
 				} else {
@@ -319,59 +377,64 @@ func ChallengeUpdate(c *fiber.Ctx) error {
 		return err
 	}
 
-	dir := p.Repository.FullName
-	s := strings.Split(dir, "/")
-	challengeName := s[1]
-	teamName := s[0]
-	namespace := teamName + "-ns"
-	log.Println("Challenge update request received for", challengeName, "by", teamName)
-	repo, err := git.PlainOpen("teams/" + dir)
-	if err != nil {
-		log.Println(err)
-	}
-
-	auth := &http.BasicAuth{
-		Username: g.AdminConfig.Username,
-		Password: g.AdminConfig.Password,
-	}
-
-	worktree, err := repo.Worktree()
-	worktree.Pull(&git.PullOptions{
-		RemoteName: "origin",
-		Auth:       auth,
-	})
-
-	if err != nil {
-		log.Println("Error pulling changes:", err)
-	}
-	katanaDir, err := utils.GetKatanaRootPath()
-	imageName := strings.Replace(dir, "/", "-", -1)
-
-	log.Println("Pull successful for", teamName, ". Building image...")
-	firstPatch := !utils.DockerImageExists(imageName)
-	utils.BuildDockerImage(imageName, katanaDir+"/teams/"+dir)
-
-	if firstPatch {
-		log.Println("First Patch for", teamName)
-		deployment.DeployChallengeToCluster(challengeName, teamName, patch, replicas)
+	if p.Ref != "refs/heads/master" {
+		return c.SendString("Push not on master branch. Ignoring")
 	} else {
-		log.Println("Not the first patch for", teamName, ". Simply deploying the image...")
-		labelSelector := metav1.LabelSelector{
-			MatchLabels: map[string]string{
-				"app": challengeName,
-			},
-		}
-		// Delete the challenge pod
-		err = client.CoreV1().Pods(namespace).DeleteCollection(context.Background(), metav1.DeleteOptions{}, metav1.ListOptions{
-			LabelSelector: metav1.FormatLabelSelector(&labelSelector),
-		})
+
+		dir := p.Repository.FullName
+		s := strings.Split(dir, "/")
+		challengeName := s[1]
+		teamName := s[0]
+		namespace := teamName + "-ns"
+		log.Println("Challenge update request received for", challengeName, "by", teamName)
+		repo, err := git.PlainOpen("teams/" + dir)
 		if err != nil {
-			log.Println("Error")
 			log.Println(err)
 		}
+
+		auth := &http.BasicAuth{
+			Username: g.AdminConfig.Username,
+			Password: g.AdminConfig.Password,
+		}
+
+		worktree, err := repo.Worktree()
+		worktree.Pull(&git.PullOptions{
+			RemoteName: "origin",
+			Auth:       auth,
+		})
+
+		if err != nil {
+			log.Println("Error pulling changes:", err)
+		}
+
+		imageName := strings.Replace(dir, "/", "-", -1)
+
+		log.Println("Pull successful for", teamName, ". Building image...")
+		firstPatch := !utils.DockerImageExists(imageName)
+		utils.BuildDockerImage(imageName, "./teams/"+dir)
+
+		if firstPatch {
+			log.Println("First Patch for", teamName)
+			deployment.DeployChallengeToCluster(challengeName, teamName, patch, replicas)
+		} else {
+			log.Println("Not the first patch for", teamName, ". Simply deploying the image...")
+			labelSelector := metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"app": challengeName,
+				},
+			}
+			// Delete the challenge pod
+			err = client.CoreV1().Pods(namespace).DeleteCollection(context.Background(), metav1.DeleteOptions{}, metav1.ListOptions{
+				LabelSelector: metav1.FormatLabelSelector(&labelSelector),
+			})
+			if err != nil {
+				log.Println("Error")
+				log.Println(err)
+			}
+		}
+		log.Println("Image built for", teamName)
+		return c.SendString("Challenge updated")
 	}
-	log.Println("Image built for", teamName)
-	return c.SendString("Challenge updated")
 }
 
 func DeleteChallenge(c *fiber.Ctx) error {

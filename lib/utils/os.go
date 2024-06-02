@@ -70,6 +70,21 @@ func RunCommand(cmd string) error {
 	return nil
 }
 
+func CreateDirectoryIfNotExists(dirPath string) error {
+	if _, err := os.Stat(dirPath); !os.IsNotExist(err) {
+		if err := os.RemoveAll(dirPath); err != nil {
+			return fmt.Errorf("failed to delete existing directory: %w", err)
+		}
+		fmt.Printf("Directory '%s' deleted.\n", dirPath)
+	}
+
+	if err := os.MkdirAll(dirPath, 0755); err != nil {
+		return fmt.Errorf("failed to create directory: %w", err)
+	}
+	fmt.Printf("Directory '%s' created.\n", dirPath)
+	return nil
+}
+
 func GetKatanaRootPath() (string, error) {
 	katanaDir, err := os.Getwd()
 	if err != nil {
