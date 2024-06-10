@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/BurntSushi/toml"
 	git "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/gofiber/fiber/v2"
@@ -20,7 +21,6 @@ import (
 	"github.com/sdslabs/katana/services/infrasetservice"
 	"github.com/sdslabs/katana/types"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"github.com/BurntSushi/toml"
 )
 
 type ChallengeToml struct {
@@ -123,6 +123,8 @@ func Deploy(c *fiber.Ctx) error {
 
 				clusterConfig := g.ClusterConfig
 				numberOfTeams := clusterConfig.TeamCount
+				data := LoadConfiguration("./challenges/" + folderName + "/katana.toml")
+				challengeType = data.Challenge.Metadata.Type
 				for i := 0; i < int(numberOfTeams); i++ {
 					log.Println("-----------Deploying challenge for team: " + strconv.Itoa(i) + " --------")
 					teamName := "katana-team-" + strconv.Itoa(i)
@@ -132,6 +134,19 @@ func Deploy(c *fiber.Ctx) error {
 						res = append(res, []string{teamName, err.Error()})
 					} else {
 						res = append(res, []string{teamName, url})
+					}
+					challenge := types.Challenge{
+						ChallengeName: folderName,
+						Uptime:        0,
+						Attacks:       0,
+						Defences:      0,
+						Points:        data.Challenge.Metadata.Points,
+						Flag:          data.Challenge.Metadata.Flag,
+					}
+					err = mongo.AddChallenge(challenge, teamName)
+					if err != nil {
+						fmt.Println("Error in adding challenge to mongo")
+						log.Println(err)
 					}
 				}
 			}
@@ -248,12 +263,27 @@ func Team(c *fiber.Ctx) error {
 				//pass path of folder which contains dockerfile
 				//Update challenge path to get dockerfile
 				utils.BuildDockerImage(folderName, challengePath+"/challenge")
+				data := LoadConfiguration("./challenges/" + folderName + "/katana.toml")
+				challengeType = data.Challenge.Metadata.Type
 
 				clusterConfig := g.ClusterConfig
 				numberOfTeams := clusterConfig.TeamCount
 				for i := 0; i < int(numberOfTeams); i++ {
 					log.Println("-----------Deploying challenge for team: " + strconv.Itoa(i) + " --------")
 					teamName := "katana-team-" + strconv.Itoa(i)
+					challenge := types.Challenge{
+						ChallengeName: folderName,
+						Uptime:        0,
+						Attacks:       0,
+						Defences:      0,
+						Points:        data.Challenge.Metadata.Points,
+						Flag:          data.Challenge.Metadata.Flag,
+					}
+					err := mongo.AddChallenge(challenge, teamName)
+					if err != nil {
+						fmt.Println("Error in adding challenge to mongo")
+						log.Println(err)
+					}
 					deployment.DeployChallengeToCluster(folderName, teamName, patch, replicas)
 					url, err := createServiceForChallenge(folderName, teamName, 3000, i)
 					if err != nil {
@@ -316,7 +346,7 @@ func DeployChallenge(c *fiber.Ctx) error {
 				return c.SendString("Error in unarchiving")
 			}
 
-			data := LoadConfiguration("./challenges/"+folderName+"/config.toml")
+			data := LoadConfiguration("./challenges/" + folderName + "/katana.toml")
 			challengeType = data.Challenge.Metadata.Type
 
 			//Update challenge path to get dockerfile

@@ -149,7 +149,7 @@ def check_route():
     results = {"challengeName": chall_name, "data": []}
     for i in range(team_count):
         team_name = f"katana-team-{i}"
-        result = {"team-name": team_name}
+        result = {"teamName": team_name}
         chall_svc = f"{chall_name}-svc-{i}"
         chall_ns = f"katana-team-{i}-ns"
         url = f"http://{chall_svc}.{chall_ns}.svc.cluster.local:80/"  # update this later ---port should not be hardcoded----
