@@ -1,0 +1,64 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kashira-config
+  namespace: katana
+data:
+  daemon_port: "{{.DaemonPort}}"
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: kissaki
+  namespace: katana
+  annotations:
+    tick: "false"
+spec:
+  selector:
+    matchLabels:
+      app: kissaki
+  serviceName: kissaki-svc
+  replicas: 1
+  template:
+    metadata:
+      namespace: katana
+      labels:
+        app: kissaki
+    spec:
+      serviceAccountName: cluster-admin
+      containers:
+        - name: kissaki
+          image: harbor.katana.local/katana/kissaki
+          imagePullPolicy: Always   # added for ease may be remove later
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: kissaki-data
+              mountPath: /opt/kissaki/challenge-data
+          env:
+            - name: DAEMON_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: kashira-config
+                  key: daemon_port
+  volumeClaimTemplates:
+    - metadata:
+        name: kissaki-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kissaki-svc
+  namespace: katana
+spec:
+  selector:
+    app: kissaki
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 5000  #Kissaki port in katana-services is in 5000, add this to docs to main consistency
