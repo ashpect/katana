@@ -1,5 +1,9 @@
+[submodule "docs/themes/hugo-geekdoc"]
+	path = docs/themes/hugo-geekdoc
+	url = https://github.com/thegeeklab/hugo-geekdoc.git
 [submodule "git@github.com:sdslabs/katana-services.git"]
 	branch = main
 [submodule "katana-services"]
 	path = katana-services
 	url = git@github.com:sdslabs/katana-services.git
+

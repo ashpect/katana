@@ -97,6 +97,12 @@ build:
 run : build
 	sudo ./bin/katana run
 
+setup-docs:
+	git submodule update --init --recursive
+	cp ./docs/config.sample.toml ./docs/config.toml
+	npm install --prefix ./docs/themes/hugo-geekdoc
+	npm run build --prefix ./docs/themes/hugo-geekdoc
+
 # Prints help message
 help:
 	@echo "KATANA"
