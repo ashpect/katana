@@ -10,6 +10,7 @@ on:
   workflow_dispatch:
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+# trigger actions
 permissions:
   contents: read
   pages: write
@@ -49,6 +50,10 @@ jobs:
         uses: actions/configure-pages@v5
       - name: Copy config.sample.toml to config.toml
         run: cp ./docs/config.sample.toml ./docs/config.toml
+      - name: Install theme dependencies
+        run: npm install --prefix ./docs/themes/hugo-geekdoc
+      - name: Build theme
+        run: npm run build --prefix ./docs/themes/hugo-geekdoc
       - name: Install Node.js dependencies
         run: "[[ -f package-lock.json || -f npm-shrinkwrap.json ]] && npm ci || true"
       - name: Build with Hugo
@@ -60,11 +65,14 @@ jobs:
           hugo \
             --gc \
             --minify \
-            --baseURL "${{ steps.pages.outputs.base_url }}/" --source ./docs         
+            --baseURL "${{ steps.pages.outputs.base_url }}/" \
+            --source ./docs    
+      # - name : check if themes folder is empty
+      #   run: ls -al ./docs/themes
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: /public
+          path: ./docs/public
 
   # Deployment job
   deploy:
