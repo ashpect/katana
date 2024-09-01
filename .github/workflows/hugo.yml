@@ -47,6 +47,8 @@ jobs:
       - name: Setup Pages
         id: pages
         uses: actions/configure-pages@v5
+      - name: Copy config.sample.toml to config.toml
+        run: cp ./docs/config.sample.toml ./docs/config.toml
       - name: Install Node.js dependencies
         run: "[[ -f package-lock.json || -f npm-shrinkwrap.json ]] && npm ci || true"
       - name: Build with Hugo
